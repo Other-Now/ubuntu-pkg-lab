@@ -19,7 +19,12 @@ apt-get install -y -q --no-install-recommends linux-headers-generic-hwe-24.04 >/
 
 cp -r /src/nano-blk-dkms /tmp/pkg && cd /tmp/pkg
 dpkg-buildpackage -us -uc -b 2>&1 | tail -3
-apt-get install -y -q ../nano-blk-dkms_*_all.deb ../nano-blk-tools_*_"$ARCH".deb 2>&1 | tail -3
+# The postinst builds the module for installed kernels; if that build fails the
+# package is left unconfigured.  Record that, then build each kernel explicitly.
+postinst=true
+apt-get install -y -q ../nano-blk-dkms_*_all.deb ../nano-blk-tools_*_"$ARCH".deb >/tmp/inst.log 2>&1 || postinst=false
+grep -E "Building|Error|error" /tmp/inst.log || true
+echo "postinst ok: $postinst"
 VER=$(dpkg-query -W -f '${Version}' nano-blk-dkms)
 
 fail=0
@@ -27,7 +32,7 @@ for kdir in /usr/src/linux-headers-*; do
     [ -e "$kdir/Module.symvers" ] || continue        # only the per-flavour trees
     k=${kdir#/usr/src/linux-headers-}
     t0=$(date +%s)
-    if dkms build "nano-blk/$VER" -k "$k" >/tmp/b.log 2>&1; then
+    if dkms build --force "nano-blk/$VER" -k "$k" >/tmp/b.log 2>&1; then
         ko=$(find /var/lib/dkms/nano-blk/"$VER"/"$k" -name 'nano_blk.ko*' | head -1)
         what=$(file -b "$ko" | cut -d, -f1-2)
         printf '{"arch":"%s","kernel":"%s","ok":true,"secs":%d,"ko":"%s"}\n' "$ARCH" "$k" $(( $(date +%s)-t0 )) "$what" | tee -a "$OUT"
