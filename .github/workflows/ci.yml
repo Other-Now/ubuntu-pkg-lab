@@ -121,3 +121,27 @@ jobs:
         with:
           name: autopkgtest-amd64
           path: results/
+
+  depsolve:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests (incl. version-compare cross-check against apt_pkg)
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q python3-apt python3-pytest
+          cd depsolve && PYTHONPATH=. python3 -m pytest -q -rs
+      - name: Differential run against apt (100 random + 100 choice-heavy packages)
+        run: |
+          R=$HOME/aptroot
+          mkdir -p $R/etc/apt/apt.conf.d $R/etc/apt/preferences.d $R/etc/apt/sources.list.d $R/etc/apt/trusted.gpg.d \
+                   $R/var/lib/apt/lists/partial $R/var/cache/apt/archives/partial $R/var/lib/dpkg $R/var/log/apt
+          : > $R/var/lib/dpkg/status
+          cp /usr/share/keyrings/ubuntu-archive-keyring.gpg $R/etc/apt/trusted.gpg.d/
+          echo "deb http://archive.ubuntu.com/ubuntu noble main universe" > $R/etc/apt/sources.list
+          printf 'Dir "%s/";\nDir::State::status "%s/var/lib/dpkg/status";\nAPT::Architecture "amd64";\nAPT::Architectures { "amd64"; };\nAcquire::Languages "none";\nDir::Etc::main "%s/apt.conf";\n' $R $R $R > $R/apt.conf
+          export APT_CONFIG=$R/apt.conf
+          apt-get update -q
+          cd depsolve
+          python3 scripts/compare_apt.py $R/var/lib/apt/lists 100 7 /tmp/random.jsonl
+          HARD=1 python3 scripts/compare_apt.py $R/var/lib/apt/lists 100 11 /tmp/hard.jsonl
+          python3 scripts/vercmp_diff.py $R/var/lib/apt/lists 200000 1 | tee -a $GITHUB_STEP_SUMMARY

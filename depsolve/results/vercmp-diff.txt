@@ -1,0 +1,11 @@
+distinct versions: 22717, pairs: 200000
+depsolve.debver disagrees with apt_pkg: 0
+nano-sensor comparator disagrees with apt_pkg: 11902 (5.95%)
+  '1.3-8build5' vs '1.3.0-3build1': dpkg says <, nano-sensor says >
+  '1.0-8-1' vs '1.0.5-22': dpkg says <, nano-sensor says >
+  '0.0.svn18969+dfsg-1' vs '0.0.1-5': dpkg says >, nano-sensor says <
+  '0.14.0-1build1' vs '0.14-4.2': dpkg says >, nano-sensor says <
+  '1.2.1.0-4' vs '1.2.01-2': dpkg says >, nano-sensor says <
+  '1-3' vs '1.0-0ubuntu6': dpkg says <, nano-sensor says >
+  '1.3.5100+dfsg-1build2' vs '1+60+g5eb950a-1': dpkg says >, nano-sensor says <
+  '0.10.0~pre.5-3' vs '0+20231230+git9e43034+ds-2build4': dpkg says >, nano-sensor says <
