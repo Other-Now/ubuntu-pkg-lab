@@ -26,6 +26,8 @@
 #include <linux/seq_file.h>
 #include <linux/xarray.h>
 
+#include "nano_blk_compat.h"
+
 #define NBLK_PAGE_SECTORS_SHIFT	(PAGE_SHIFT - SECTOR_SHIFT)
 #define NBLK_PAGE_SECTORS	BIT(NBLK_PAGE_SECTORS_SHIFT)
 
@@ -324,7 +326,7 @@ static int nblk_add_disk(struct nblk_dev *dev)
 	if (err)
 		return err;
 
-	disk = blk_mq_alloc_disk(&dev->tag_set, &lim, dev);
+	disk = nblk_alloc_disk(&dev->tag_set, &lim, dev);
 	if (IS_ERR(disk)) {
 		err = PTR_ERR(disk);
 		goto free_tags;

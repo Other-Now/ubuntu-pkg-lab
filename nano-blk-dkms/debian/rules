@@ -19,7 +19,7 @@ override_dh_auto_clean:
 override_dh_auto_install:
 	install -D -m755 blkcheck debian/nano-blk-tools/usr/sbin/blkcheck
 	install -d $(SRCDIR)
-	install -m644 nano_blk.c Makefile $(SRCDIR)/
+	install -m644 nano_blk.c nano_blk_compat.h Makefile $(SRCDIR)/
 
 override_dh_dkms:
 	dh_dkms -V $(DEB_VERSION_UPSTREAM)

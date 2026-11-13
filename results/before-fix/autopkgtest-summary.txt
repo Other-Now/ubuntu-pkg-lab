@@ -1,0 +1,6 @@
+command1             FAIL badpkg
+blame: arg:build/nano-blk-dkms_0.1.0_all.deb deb:nano-blk-dkms arg:build/nano-blk-tools_0.1.0_amd64.deb deb:nano-blk-tools nano-blk-dkms/
+badpkg: Test dependencies are unsatisfiable. A common reason is that your testbed is out of date with respect to the archive, and you need to use a current testbed or run apt-get update or use -U.
+load-and-check       FAIL badpkg
+blame: arg:build/nano-blk-dkms_0.1.0_all.deb deb:nano-blk-dkms arg:build/nano-blk-tools_0.1.0_amd64.deb deb:nano-blk-tools nano-blk-dkms/
+badpkg: Test dependencies are unsatisfiable. A common reason is that your testbed is out of date with respect to the archive, and you need to use a current testbed or run apt-get update or use -U.

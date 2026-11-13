@@ -1,0 +1,11 @@
+ 29s Setting up nano-blk-dkms (0.1.0) ...
+ 29s Loading new nano-blk-0.1.0 DKMS files...
+ 29s Building for 6.8.0-149-generic
+ 29s Building initial module for 6.8.0-149-generic
+ 29s EFI variables are not supported on this system
+ 29s /sys/firmware/efi/efivars not found, aborting.
+ 31s Error! Bad return status for module build on kernel: 6.8.0-149-generic (x86_64)
+ 31s Consult /var/lib/dkms/nano-blk/0.1.0/build/make.log for more information.
+ 31s dpkg: error processing package nano-blk-dkms (--configure):
+ 31s  installed nano-blk-dkms package post-installation script subprocess returned error exit status 10
+ 31s Processing triggers for libc-bin (2.39-0ubuntu8.12) ...
