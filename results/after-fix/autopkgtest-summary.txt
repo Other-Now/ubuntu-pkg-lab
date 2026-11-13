@@ -1,0 +1,2 @@
+command1             PASS
+load-and-check       PASS

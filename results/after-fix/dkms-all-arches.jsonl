@@ -1,0 +1,9 @@
+{"arch":"amd64","kernel":"6.8.0-149-generic","ok":true,"secs":1,"ko":"ELF 64-bit LSB relocatable, x86-64"}
+{"arch":"amd64","kernel":"7.0.0-43-generic","ok":true,"secs":1,"ko":"ELF 64-bit LSB relocatable, x86-64"}
+{"arch":"arm64","kernel":"6.8.0-149-generic","ok":true,"secs":2,"ko":"ELF 64-bit LSB relocatable, ARM aarch64"}
+{"arch":"arm64","kernel":"7.0.0-43-generic","ok":true,"secs":2,"ko":"ELF 64-bit LSB relocatable, ARM aarch64"}
+{"arch":"ppc64el","kernel":"6.8.0-149-generic","ok":true,"secs":39,"ko":"ELF 64-bit LSB relocatable, 64-bit PowerPC or cisco 7500"}
+{"arch":"ppc64el","kernel":"7.0.0-43-generic","ok":true,"secs":36,"ko":"ELF 64-bit LSB relocatable, 64-bit PowerPC or cisco 7500"}
+{"arch":"riscv64","kernel":"7.0.0-43-generic","ok":true,"secs":28,"ko":"ELF 64-bit LSB relocatable, UCB RISC-V"}
+{"arch":"s390x","kernel":"6.8.0-149-generic","ok":true,"secs":18,"ko":"ELF 64-bit MSB relocatable, IBM S/390"}
+{"arch":"s390x","kernel":"7.0.0-43-generic","ok":true,"secs":19,"ko":"ELF 64-bit MSB relocatable, IBM S/390"}

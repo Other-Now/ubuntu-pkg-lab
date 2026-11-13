@@ -1,0 +1,29 @@
+ 29s Building for 6.8.0-149-generic
+ 40s I: Removing binary package nano-blk-dkms, to get clean state.
+ 43s I: Installing binary package nano-blk-dkms
+ 43s I: Checking for missing dkms dependency by trying to deinstall dkms
+ 43s I: Using the following Linux header packages that were already installed:
+ 43s I:   linux-headers-6.8.0-149
+ 43s I:   linux-headers-6.8.0-149-generic
+ 43s I:   linux-headers-generic
+ 43s I: Testing binary package nano-blk-dkms
+ 43s I: Trying to build nano-blk/0.1.1 for 6.8.0-149-generic
+ 44s Creating symlink /var/lib/dkms/nano-blk/0.1.1/source -> /usr/src/nano-blk-0.1.1
+ 45s Signing module /var/lib/dkms/nano-blk/0.1.1/build/nano_blk.ko
+ 47s I: Testing if nano-blk modules are correctly installed.
+ 47s nano-blk/0.1.1, 6.8.0-149-generic, x86_64: installed
+ 48s nano-blk/0.1.1/6.8.0-149-generic/x86_64/log/make.log
+ 48s I: Summary:
+ 48s I: PASS 6.8.0-149-generic
+ 49s autopkgtest [06:25:17]: test load-and-check: preparing testbed
+ 86s Building for 6.8.0-149-generic
+ 95s autopkgtest [06:26:03]: test load-and-check: [-----------------------
+ 95s Module nano-blk/0.1.1 already installed on kernel 6.8.0-149-generic (x86_64), skip. You may override by specifying --force.
+ 95s nano-blk/0.1.1, 6.8.0-149-generic, x86_64: installed
+ 97s {"dev":"/dev/nblk0","size":67108864,"writes":10028,"reads":8076,"discards":1896,"mismatches":0,"io_errors":0,"seconds":1.79}
+102s {"dev":"/dev/nblk0","size":67108864,"writes":9909,"reads":8032,"discards":2059,"mismatches":0,"io_errors":0,"seconds":5.22}
+102s load-and-check: PASS on 6.8.0-149-generic (amd64)
+103s autopkgtest [06:26:11]: test load-and-check: -----------------------]
+103s autopkgtest [06:26:11]: test load-and-check:  - - - - - - - - - - results - - - - - - - - - -
+103s load-and-check       PASS
+104s load-and-check       PASS
