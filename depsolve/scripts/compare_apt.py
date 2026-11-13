@@ -12,12 +12,23 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from depsolve import Index, Solver, Unsat  # noqa: E402
+from depsolve import Index, Solver, Unsat, problems, unneeded  # noqa: E402
 
 INST = re.compile(r"^Inst (\S+) \((\S+)")
 
 
+_CACHE_PATH = os.environ.get("APT_RESULT_CACHE")
+_cache = json.load(open(_CACHE_PATH)) if _CACHE_PATH and os.path.exists(_CACHE_PATH) else {}
+
+
 def apt_resolve(pkg):
+    """apt's answer for one request (memoised in $APT_RESULT_CACHE across runs)."""
+    if pkg not in _cache:
+        _cache[pkg] = _apt_resolve(pkg)
+    return _cache[pkg]
+
+
+def _apt_resolve(pkg):
     r = subprocess.run(["apt-get", "-s", "-q", "install", "--no-install-recommends", pkg],
                        capture_output=True, text=True)
     if r.returncode != 0:
@@ -38,7 +49,7 @@ def hard_names(idx):
     return out
 
 
-def main(lists, n, seed, out, *, provider_order=True):
+def main(lists, n, seed, out, *, provider_order="apt"):
     files = sorted(os.path.join(lists, f) for f in os.listdir(lists) if f.endswith("_Packages"))
     t = time.perf_counter()
     idx = Index.load(*files)
@@ -71,16 +82,26 @@ def main(lists, n, seed, out, *, provider_order=True):
                 row["only_ds"] = sorted(set(ds) - set(apt))
                 row["ver_diff"] = sorted(k for k in set(apt) & set(ds) if apt[k] != ds[k])
                 row["same"] = not (row["only_apt"] or row["only_ds"] or row["ver_diff"])
+                if not row["same"]:
+                    # Both answers checked by the same independent verifier.
+                    pick = lambda s: {k: next(p for p in idx.by_name[k] if p.version == v) for k, v in s.items()}
+                    a, d = pick(apt), pick(ds)
+                    row["apt_problems"] = problems(idx, a)[:5]
+                    row["ds_problems"] = problems(idx, d)[:5]
+                    row["apt_unneeded"] = unneeded(idx, a, [name])
+                    row["ds_unneeded"] = unneeded(idx, d, [name])
             else:
                 row["same"] = apt is None and ds is None
                 row["apt_err"], row["ds_err"] = apt_err, ds_err
             agree += row["same"]
             f.write(json.dumps(row) + "\n")
             if (i + 1) % 50 == 0:
-                print(f"{i + 1}/{n}: {agree} identical", file=sys.stderr)
-    print(f"identical install sets: {agree}/{n}", file=sys.stderr)
+                print(f"{i + 1}/{len(sample)}: {agree} identical", file=sys.stderr)
+    if _CACHE_PATH:
+        json.dump(_cache, open(_CACHE_PATH, "w"))
+    print(f"identical install sets: {agree}/{len(sample)} (provider order: {provider_order})", file=sys.stderr)
 
 
 if __name__ == "__main__":
     main(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4],
-         provider_order=os.environ.get("PROVIDER_ORDER", "apt") == "apt")
+         provider_order=os.environ.get("PROVIDER_ORDER", "apt"))

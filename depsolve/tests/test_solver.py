@@ -20,6 +20,24 @@ def test_parse_rels():
     assert [[str(x) for x in c] for c in r] == [["a (>= 1.0)", "b"], ["c"], ["d (<< 2)"]]
 
 
+def test_foreign_arch_qualifier_is_not_the_native_package(tmp_path):
+    # Real case from noble: libc6-x32 "Conflicts: libc6-i386:x32".
+    got = solve("""
+        Package: multilib
+        Version: 1
+        Depends: libc6-x32, libc6-i386
+
+        Package: libc6-x32
+        Version: 2.39
+        Conflicts: libc6-i386:x32
+
+        Package: libc6-i386
+        Version: 2.39
+        """, tmp_path, "multilib")
+    assert set(got) == {"multilib", "libc6-x32", "libc6-i386"}
+    assert str(parse_rels("perl:any, foo:amd64, bar:armhf")[2][0]) == "bar:armhf"
+
+
 def test_simple_chain(tmp_path):
     got = solve("""
         Package: a
@@ -128,9 +146,32 @@ def test_virtual_unversioned_and_versioned_provides(tmp_path):
     # apt ordering: higher Priority first -> postfix
     assert "postfix" in solve(text, tmp_path, "app")
     # name ordering would pick exim
-    assert "exim" in solve(text, tmp_path, "app", apt_provider_order=False)
+    assert "exim" in solve(text, tmp_path, "app", apt_provider_order="name")
     # only a versioned Provides can satisfy a versioned dependency
-    assert "postfix" in solve(text, tmp_path, "app2", apt_provider_order=False)
+    assert "postfix" in solve(text, tmp_path, "app2", apt_provider_order="name")
+
+
+def test_equal_priority_providers_tie_break_on_apt_id(tmp_path):
+    # Same Priority: apt takes the provider its cache met LAST (higher ID).
+    text = """
+        Package: app
+        Version: 1
+        Depends: www-browser
+
+        Package: aaa-browser
+        Version: 1
+        Provides: www-browser
+
+        Package: zzz-browser
+        Version: 1
+        Provides: www-browser
+
+        Package: mmm-browser
+        Version: 1
+        Provides: www-browser
+        """
+    assert "mmm-browser" in solve(text, tmp_path, "app")
+    assert "aaa-browser" in solve(text, tmp_path, "app", apt_provider_order="priority-name")
 
 
 def test_provides_conflicts_replaces_idiom(tmp_path):
@@ -169,3 +210,27 @@ def test_unsatisfiable(tmp_path):
             Version: 1
             Depends: missing
             """, tmp_path, "a")
+
+
+def test_verify_flags_missing_dep_conflict_and_unneeded(tmp_path):
+    from depsolve import problems, unneeded
+    idx = idx_from("""
+        Package: a
+        Version: 1
+        Depends: b | c
+
+        Package: b
+        Version: 1
+        Conflicts: d
+
+        Package: c
+        Version: 1
+
+        Package: d
+        Version: 1
+        Depends: e
+        """, tmp_path)
+    pk = {n: idx.by_name[n][0] for n in ("a", "b", "c", "d")}
+    probs = problems(idx, pk)
+    assert "d: unsatisfied e" in probs and "b conflicts/breaks d" in probs
+    assert unneeded(idx, {n: pk[n] for n in ("a", "b", "c")}, ["a"]) == ["c"]

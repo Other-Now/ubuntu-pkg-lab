@@ -13,8 +13,9 @@ Choice order -- which alternative is tried first -- decides *which* valid
 answer comes out, and is where this solver and apt can differ:
   1. alternatives of an "a | b" clause in the order written;
   2. for one alternative: the real package of that name (highest version first),
-     then packages that Provide the name, ordered like apt orders them
-     (see provider_key).
+     then packages that Provide the name, ordered like apt 2.8 orders them
+     (see provider_key).  Getting this order wrong does not make an answer
+     invalid -- it makes it a *different* valid answer than apt's.
 """
 import sys
 from .debver import compare, satisfies
@@ -27,7 +28,7 @@ class Unsat(Exception):
 
 
 class Solver:
-    def __init__(self, index: Index, *, apt_provider_order=True, max_steps=200_000):
+    def __init__(self, index: Index, *, apt_provider_order="apt", max_steps=200_000):
         self.idx = index
         self.apt_provider_order = apt_provider_order
         self.max_steps = max_steps
@@ -45,8 +46,12 @@ class Solver:
             # only by a versioned Provides that satisfies it (Policy 7.5).
             if rel.op is None or (pver is not None and satisfies(pver, rel.op, rel.ver)):
                 provs.append(p)
-        if self.apt_provider_order:
+        if self.apt_provider_order == "apt":
             provs.sort(key=self.provider_key)
+        elif self.apt_provider_order == "priority-name":
+            provs.sort(key=lambda p: (not p.essential, -p.priority, p.name))
+        else:                                    # "name"
+            provs.sort(key=lambda p: p.name)
         out, seen = [], set()
         for p in real + provs:
             if id(p) not in seen:
@@ -54,10 +59,11 @@ class Solver:
                 out.append(p)
         return out
 
-    @staticmethod
-    def provider_key(p: Pkg):
-        # apt (pkgPrioSortList): essential first, then higher Priority, then name.
-        return (not p.essential, -p.priority, p.name)
+    def provider_key(self, p: Pkg):
+        # apt 2.8 depcache.cc CompareProviders, for an empty dpkg status and a
+        # single architecture: essential, then Important, then higher Priority,
+        # then -- "unable to decide" -- the higher package ID.
+        return (not p.essential, not p.important, -p.priority, -self.idx.first_seen[p.name])
 
     # ---- conflict check ---------------------------------------------------
     @staticmethod
