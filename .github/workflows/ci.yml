@@ -28,7 +28,9 @@ jobs:
       - name: Package contents
         run: for d in build/*.deb; do echo "== $d"; dpkg-deb -I $d | sed -n '/Package/,$p'; dpkg-deb -c $d; done
       - uses: actions/upload-artifact@v4
-        with: {name: debs, path: build/}
+        with:
+          name: debs
+          path: build/
 
   # Rebuild from the source package in a clean, minimal noble chroot: proves the
   # Build-Depends are complete (nothing leaks in from the CI image).
@@ -37,7 +39,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
-        with: {name: debs, path: build}
+        with:
+          name: debs
+          path: build
       - name: Tools
         run: |
           sudo apt-get update -q
@@ -78,7 +82,9 @@ jobs:
         run: cat results/dkms-*.jsonl >> $GITHUB_STEP_SUMMARY || true
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: dkms-${{ matrix.arch }}, path: results/}
+        with:
+          name: dkms-${{ matrix.arch }}
+          path: results/
 
   # autopkgtest in a VM running a stock Ubuntu 24.04 cloud image: DKMS builds the
   # module for that kernel, the test loads it and runs blkcheck.
@@ -89,7 +95,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: {name: debs, path: build}
+        with:
+          name: debs
+          path: build
       - name: Tools
         run: |
           sudo apt-get update -q
@@ -110,4 +118,6 @@ jobs:
           grep -h -E 'load-and-check: PASS|"writes"|dkms status|nano-blk/' results/autopkgtest-amd64/log >> $GITHUB_STEP_SUMMARY || true
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: autopkgtest-amd64, path: results/}
+        with:
+          name: autopkgtest-amd64
+          path: results/
