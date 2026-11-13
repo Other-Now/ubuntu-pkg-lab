@@ -1,0 +1,28 @@
+#!/bin/sh
+# Build nano_blk for the running kernel, load it, run blkcheck, unload.
+set -eu
+KVER=$(uname -r)
+VER=$(dpkg-query -W -f '${Version}' nano-blk-dkms)
+
+if [ ! -e "/lib/modules/$KVER/build" ]; then
+    apt-get install -y -q "linux-headers-$KVER" </dev/null
+fi
+# The postinst only builds for kernels whose headers were present at install time.
+dkms install "nano-blk/$VER" -k "$KVER"
+dkms status nano-blk
+
+modprobe nano_blk size_mb=64
+trap 'rmmod nano_blk || true' EXIT
+modinfo -F filename nano_blk
+udevadm settle
+test -b /dev/nblk0
+
+# 20k random write/read/discard ops against an in-memory model, then a
+# full-device read-back.  blkcheck exits 1 on any mismatch or I/O error.
+blkcheck /dev/nblk0 20000 1
+blkcheck /dev/nblk0 20000 2 1024
+
+rmmod nano_blk
+trap - EXIT
+! lsmod | grep -q '^nano_blk '
+echo "load-and-check: PASS on $KVER ($(dpkg --print-architecture))"

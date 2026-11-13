@@ -1,0 +1,33 @@
+.TH BLKCHECK 8 "November 2026" "nano-blk 0.1.0" "System Administration"
+.SH NAME
+blkcheck \- model-based data-integrity check for a block device
+.SH SYNOPSIS
+.B blkcheck
+.I device ops seed
+.RI [ maxlen_kb ]
+.br
+.B blkcheck
+.I device
+.B fill
+.I seed
+.SH DESCRIPTION
+.B blkcheck
+issues
+.I ops
+random 4 KiB-aligned O_DIRECT writes, reads and discards against
+.I device
+and compares every read with an in-memory copy of what the device must
+contain.  It finishes with a read-back of the whole device and prints a
+one-line JSON summary.
+.PP
+In
+.B fill
+mode it writes every 4 KiB block once, in order, continuing past failed
+writes, then checks that written blocks read back exactly and that blocks
+whose write failed read back as zeroes.
+.SH EXIT STATUS
+0 if every read matched the model; 1 on any mismatch or I/O error.
+.SH WARNING
+All data on
+.I device
+is overwritten.

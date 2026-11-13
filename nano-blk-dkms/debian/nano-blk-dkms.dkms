@@ -1,0 +1,7 @@
+PACKAGE_NAME="nano-blk"
+PACKAGE_VERSION="#MODULE_VERSION#"
+BUILT_MODULE_NAME[0]="nano_blk"
+DEST_MODULE_LOCATION[0]="/updates/dkms"
+MAKE[0]="make KDIR=${kernel_source_dir} module"
+CLEAN="make KDIR=${kernel_source_dir} clean"
+AUTOINSTALL="yes"

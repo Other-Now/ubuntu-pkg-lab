@@ -1,0 +1,113 @@
+name: ci
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Build source + binary packages and hold them to lintian.
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends devscripts debhelper dh-dkms lintian build-essential
+      - name: dpkg-buildpackage (source + binary)
+        run: |
+          cd nano-blk-dkms && dpkg-buildpackage -us -uc
+          mkdir -p ../build && mv ../nano-blk*_* ../build/ && ls -l ../build
+      - name: lintian (fail on warnings)
+        run: |
+          lintian --version
+          lintian --info --display-info --pedantic --fail-on error,warning build/*.changes | tee lintian.txt
+          echo "lintian: $(grep -c . lintian.txt || true) tags (pedantic, info shown)" >> $GITHUB_STEP_SUMMARY
+          cat lintian.txt >> $GITHUB_STEP_SUMMARY
+      - name: Package contents
+        run: for d in build/*.deb; do echo "== $d"; dpkg-deb -I $d | sed -n '/Package/,$p'; dpkg-deb -c $d; done
+      - uses: actions/upload-artifact@v4
+        with: {name: debs, path: build/}
+
+  # Rebuild from the source package in a clean, minimal noble chroot: proves the
+  # Build-Depends are complete (nothing leaks in from the CI image).
+  sbuild:
+    needs: package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {name: debs, path: build}
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends sbuild mmdebstrap uidmap
+          # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor; unshare mode needs them.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Create noble chroot
+        run: |
+          mkdir -p ~/.cache/sbuild
+          mmdebstrap --variant=buildd --mode=unshare --components=main,universe noble \
+            ~/.cache/sbuild/noble-amd64.tar.zst http://archive.ubuntu.com/ubuntu
+      - name: sbuild
+        run: |
+          cd build
+          sbuild --chroot-mode=unshare --dist=noble --arch-all --no-run-lintian --no-run-autopkgtest \
+            --chroot ~/.cache/sbuild/noble-amd64.tar.zst nano-blk_*.dsc 2>&1 | tail -40
+          ls -l *.deb
+
+  # Install the packages and have DKMS build the module against Ubuntu's own
+  # kernel headers on each of Ubuntu's five release architectures.
+  dkms:
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64, ppc64el, s390x, riscv64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.arch != 'amd64' && matrix.arch != 'arm64'
+      - name: DKMS build in ubuntu:24.04/${{ matrix.arch }}
+        run: |
+          case ${{ matrix.arch }} in ppc64el) p=ppc64le ;; *) p=${{ matrix.arch }} ;; esac
+          docker run --rm --platform linux/$p -v $PWD:/src ubuntu:24.04 bash /src/ci/dkms-arch.sh
+      - name: Summary
+        if: always()
+        run: cat results/dkms-*.jsonl >> $GITHUB_STEP_SUMMARY || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: dkms-${{ matrix.arch }}, path: results/}
+
+  # autopkgtest in a VM running a stock Ubuntu 24.04 cloud image: DKMS builds the
+  # module for that kernel, the test loads it and runs blkcheck.
+  autopkgtest:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: debs, path: build}
+      - name: Tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q autopkgtest qemu-system-x86 qemu-utils genisoimage
+          sudo chmod 666 /dev/kvm
+      - name: Image cache
+        uses: actions/cache@v4
+        with:
+          path: ~/autopkgtest-noble-amd64.img
+          key: autopkgtest-noble-amd64-${{ github.run_id }}
+          restore-keys: autopkgtest-noble-amd64-
+      - name: autopkgtest (qemu)
+        run: ci/autopkgtest-vm.sh
+      - name: Summary
+        if: always()
+        run: |
+          cat results/autopkgtest-amd64/summary >> $GITHUB_STEP_SUMMARY || true
+          grep -h -E 'load-and-check: PASS|"writes"|dkms status|nano-blk/' results/autopkgtest-amd64/log >> $GITHUB_STEP_SUMMARY || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: autopkgtest-amd64, path: results/}

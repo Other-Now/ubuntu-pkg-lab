@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+include /usr/share/dpkg/pkg-info.mk
+
+SRCDIR = debian/nano-blk-dkms/usr/src/nano-blk-$(DEB_VERSION_UPSTREAM)
+
+%:
+	dh $@
+
+# A package build has no kernel headers, so only the userspace tool is built
+# here.  DKMS builds the module later, on the machine it is installed on.
+override_dh_auto_build:
+	$(MAKE) blkcheck
+
+override_dh_auto_clean:
+	rm -f blkcheck
+
+override_dh_auto_install:
+	install -D -m755 blkcheck debian/nano-blk-tools/usr/sbin/blkcheck
+	install -d $(SRCDIR)
+	install -m644 nano_blk.c Makefile $(SRCDIR)/
+
+override_dh_dkms:
+	dh_dkms -V $(DEB_VERSION_UPSTREAM)

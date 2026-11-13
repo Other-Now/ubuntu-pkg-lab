@@ -1,0 +1,11 @@
+# 1. Canonical's generic DKMS test: install headers, build the module for
+#    every installed kernel.  Runs in any testbed (container is enough).
+Test-Command: /usr/lib/dkms/dkms-autopkgtest
+Restrictions: needs-root, allow-stderr, breaks-testbed
+Depends: @
+
+# 2. Load the module into the running kernel and check data integrity.
+#    Needs a real (virtual) machine: containers cannot load modules.
+Tests: load-and-check
+Restrictions: needs-root, isolation-machine, breaks-testbed, allow-stderr
+Depends: @, kmod, dkms

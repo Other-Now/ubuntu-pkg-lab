@@ -1,0 +1,34 @@
+Source: nano-blk
+Section: kernel
+Priority: optional
+Maintainer: Manprit <2001manprit@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-sequence-dkms
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/Other-Now/nano-blk
+Vcs-Browser: https://github.com/Other-Now/ubuntu-pkg-lab
+Vcs-Git: https://github.com/Other-Now/ubuntu-pkg-lab.git
+
+Package: nano-blk-dkms
+Architecture: all
+Depends: ${misc:Depends}
+Recommends: nano-blk-tools
+Description: RAM-backed blk-mq block device driver (DKMS source)
+ nano_blk is a small block device that keeps its data in RAM, one page at
+ a time, allocated on first write.  It supports discard and write-zeroes and
+ fails writes with EIO when the system is short of memory instead of invoking
+ the OOM killer.
+ .
+ This package ships the module source and lets DKMS build it for every
+ installed kernel, including kernels installed later.
+
+Package: nano-blk-tools
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: data-integrity checker for block devices
+ blkcheck issues random O_DIRECT writes, reads and discards against a block
+ device and checks every read against an in-memory model of what the device
+ must contain.  It ends with a full read-back of the device.
+ .
+ It is used by the nano-blk autopkgtest and works on any block device.
+ It overwrites the device.
